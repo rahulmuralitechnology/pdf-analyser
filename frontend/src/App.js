@@ -4,6 +4,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import "./App.css";
 import ReactMarkdown from "react-markdown";
+import { franc } from "franc-min";
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -20,7 +21,7 @@ const App = () => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [messages, setMessages] = useState([]);
-  
+
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -36,7 +37,7 @@ const App = () => {
       processPdf();
     }
   }, [file]);
-  
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -155,14 +156,31 @@ const App = () => {
   const generateAudioResponse = (text) => {
     if (!text) return;
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language;
+    // 1️⃣ Split text into sentences or words (based on space or punctuation)
+    const textParts = text.split(/([.!?]|\s+)/).filter(part => part.trim());
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
+    const langMap = {
+      eng: "en-US",
+      tam: "ta-IN",
+      mal: "ml-IN",
+      hin: "hi-IN",
+    };
 
-    speechSynthesis.cancel();
-    speechSynthesis.speak(utterance);
+    const voices = speechSynthesis.getVoices();
+
+    textParts.forEach(part => {
+      let detectedLang = franc(part) || "eng"; // Detect language
+      let langCode = langMap[detectedLang] || "en-US"; // Default to English
+      let selectedVoice = voices.find(voice => voice.lang === langCode);
+
+      const utterance = new SpeechSynthesisUtterance(part);
+      utterance.lang = langCode;
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      speechSynthesis.speak(utterance);
+    });
   };
 
   const stopSpeaking = () => {
@@ -236,7 +254,7 @@ const App = () => {
     <div className="app-container">
       <header className="app-header">
         <h1 className="app-title">Document Q&A Chat</h1>
-        
+
         <div className="header-controls">
           <div className="language-selector">
             <label className="language-label">Language:</label>
@@ -252,7 +270,7 @@ const App = () => {
               ))}
             </select>
           </div>
-          
+
           <div className="file-upload-container">
             <input
               type="file"
@@ -266,7 +284,7 @@ const App = () => {
               onClick={triggerFileInput}
               className="upload-button"
             >
-              <Upload size={16} className="icon-left" /> 
+              <Upload size={16} className="icon-left" />
               {file ? 'Change PDF' : 'Upload PDF'}
             </button>
           </div>
@@ -279,7 +297,7 @@ const App = () => {
             <FileText size={16} className="icon-document" />
             <span className="document-filename">{file.name}</span>
           </div>
-          
+
           {isExtracting ? (
             <div className="extraction-status">
               <Loader2 size={14} className="icon-spinner" />
@@ -308,8 +326,8 @@ const App = () => {
               className={`message ${msg.type}-message`}
             >
               <p className="message-content"><ReactMarkdown>{msg.content}</ReactMarkdown></p>
-              
-              
+
+
               {msg.type === 'assistant' && (
                 <button
                   onClick={() => generateAudioResponse(msg.content)}
@@ -359,7 +377,7 @@ const App = () => {
                 Stop Audio
               </button>
             )}
-            
+
             <button
               onClick={handleAskQuestion}
               disabled={isProcessing || !documentText}
@@ -377,7 +395,7 @@ const App = () => {
             </button>
           </div>
         </div>
-        
+
         {!documentText && !isExtracting && (
           <p className="helper-text">
             Please upload a PDF document first to start asking questions

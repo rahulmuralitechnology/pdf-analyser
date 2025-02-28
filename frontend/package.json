@@ -9,6 +9,7 @@
     "@testing-library/react": "^16.2.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.8.1",
+    "franc-min": "^6.2.0",
     "lucide-react": "^0.476.0",
     "pdfjs-dist": "^4.10.38",
     "react": "^19.0.0",
